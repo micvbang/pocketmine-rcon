@@ -87,11 +87,10 @@ func (c *Connection) readPkg() Pkg {
 }
 
 type Pkg struct {
-	Size  int32
-	Id    int32
-	Type  int32
-	Body  []byte
-	_null int16
+	Size int32
+	Id   int32
+	Type int32
+	Body []byte
 }
 
 type binaryReadWriter struct {
@@ -114,5 +113,5 @@ func (b *binaryReadWriter) Read(v interface{}) {
 	if b.err != nil || b.buf == nil {
 		return
 	}
-	binary.Read(b.buf, b.ByteOrder, v)
+	b.err = binary.Read(b.buf, b.ByteOrder, v)
 }
