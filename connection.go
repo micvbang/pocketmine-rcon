@@ -19,7 +19,8 @@ var uniqueId int32 = 0
 func NewConnection(addr, pass string) (*Connection, error) {
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
-		log.Fatal(err)
+// 		log.Fatal(err)
+		return nil, err
 	}
 	c := &Connection{conn: conn, pass: pass, addr: addr}
 	if err := c.auth(); err != nil {
