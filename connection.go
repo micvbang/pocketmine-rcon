@@ -19,7 +19,7 @@ var uniqueId int32 = 0
 func NewConnection(addr, pass string) (*Connection, error) {
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
-// 		log.Fatal(err)
+		log.Println(err)
 		return nil, err
 	}
 	c := &Connection{conn: conn, pass: pass, addr: addr}
@@ -56,7 +56,7 @@ func (c *Connection) sendCommand(typ int32, body []byte) {
 	wtr.Write(body)
 	wtr.Write([]byte{0x0, 0x0})
 	if wtr.err != nil {
-		log.Fatal(wtr.err)
+		log.Println(wtr.err)
 	}
 
 	c.conn.Write(wtr.buf.Bytes())
@@ -69,7 +69,8 @@ func (c *Connection) readPkg() Pkg {
 	// Doesn't handle split messages correctly.
 	read, err := c.conn.Read(b)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		
 	}
 
 	p := Pkg{}
@@ -81,7 +82,7 @@ func (c *Connection) readPkg() Pkg {
 	body := [bufSize - 12]byte{}
 	rdr.Read(&body)
 	if rdr.err != nil {
-		log.Fatal(rdr.err)
+		log.Println(rdr.err)
 	}
 	p.Body = body[:read-12]
 	return p
