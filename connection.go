@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"log"
 	"net"
 )
 
@@ -14,12 +13,12 @@ type Connection struct {
 	addr string
 }
 
-var uniqueId int32 = 0
+var uniqueID int32 = 0
 
 func NewConnection(addr, pass string) (*Connection, error) {
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	c := &Connection{conn: conn, pass: pass, addr: addr}
 	if err := c.auth(); err != nil {
@@ -28,25 +27,36 @@ func NewConnection(addr, pass string) (*Connection, error) {
 	return c, nil
 }
 
-func (c *Connection) SendCommand(cmd string) string {
-	c.sendCommand(2, []byte(cmd))
-	pkg := c.readPkg()
-	return string(pkg.Body)
+func (c *Connection) SendCommand(cmd string) (string, error) {
+	err := c.sendCommand(2, []byte(cmd))
+	if err != nil {
+		return "", err
+	}
+	pkg, err := c.readPkg()
+	if err != nil {
+		return "", err
+	}
+	return string(pkg.Body), err
 }
 
 func (c *Connection) auth() error {
 	c.sendCommand(3, []byte(c.pass))
-	pkg := c.readPkg()
-	if pkg.Type != 2 || pkg.Id != uniqueId {
-		return errors.New("Incorrect password.")
+	pkg, err := c.readPkg()
+	if err != nil {
+		return err
 	}
+
+	if pkg.Type != 2 || pkg.ID != uniqueID {
+		return errors.New("incorrect password")
+	}
+
 	return nil
 }
 
-func (c *Connection) sendCommand(typ int32, body []byte) {
+func (c *Connection) sendCommand(typ int32, body []byte) error {
 	size := int32(4 + 4 + len(body) + 2)
-	uniqueId += 1
-	id := uniqueId
+	uniqueID += 1
+	id := uniqueID
 
 	wtr := binaryReadWriter{ByteOrder: binary.LittleEndian}
 	wtr.Write(size)
@@ -55,40 +65,41 @@ func (c *Connection) sendCommand(typ int32, body []byte) {
 	wtr.Write(body)
 	wtr.Write([]byte{0x0, 0x0})
 	if wtr.err != nil {
-		log.Fatal(wtr.err)
+		return wtr.err
 	}
 
 	c.conn.Write(wtr.buf.Bytes())
+	return nil
 }
 
-func (c *Connection) readPkg() Pkg {
+func (c *Connection) readPkg() (pkg, error) {
 	const bufSize = 4096
 	b := make([]byte, bufSize)
 
 	// Doesn't handle split messages correctly.
 	read, err := c.conn.Read(b)
 	if err != nil {
-		log.Fatal(err)
+		return pkg{}, err
 	}
 
-	p := Pkg{}
+	p := pkg{}
 	rdr := binaryReadWriter{ByteOrder: binary.LittleEndian,
 		buf: bytes.NewBuffer(b)}
 	rdr.Read(&p.Size)
-	rdr.Read(&p.Id)
+	rdr.Read(&p.ID)
 	rdr.Read(&p.Type)
 	body := [bufSize - 12]byte{}
 	rdr.Read(&body)
 	if rdr.err != nil {
-		log.Fatal(rdr.err)
+		return p, rdr.err
 	}
 	p.Body = body[:read-12]
-	return p
+	return p, nil
 }
 
-type Pkg struct {
+type pkg struct {
 	Size int32
-	Id   int32
+	ID   int32
 	Type int32
 	Body []byte
 }

@@ -40,7 +40,14 @@ func main() {
 			prompt()
 			continue
 		}
-		r := conn.SendCommand(input)
+
+		r, err := conn.SendCommand(input)
+		if err != nil {
+			fmt.Printf("Error: %s\n", err)
+			prompt()
+			continue
+		}
+
 		fmt.Printf("Server:\n%s\n", r)
 		prompt()
 	}
