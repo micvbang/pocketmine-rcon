@@ -32,6 +32,7 @@ func main() {
 			fmt.Println(err)
 			return
 		}
+		input = strings.TrimSuffix(input, "\r\n")
 		input = strings.Trim(input[:len(input)-1], " ")
 		if input == ".exit" {
 			break
